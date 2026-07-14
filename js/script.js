@@ -32,16 +32,17 @@ function generateFunction() {
     const types = [
         "linear",
         "quadratic",
-        "cubic"
-        // "sine",
-        // "cosine",
-        // "exponential",
-        // "absolute",
-        // "rational"
+        "cubic",
+        "sine",
+        "cosine",
+        // "tangent",
+        "exponential",
+        "absolute",
+        "rational"
     ];
     // Setting the type index to a variable to log out for debugging purposes
     // TODO: Remove that index later
-    let index = getRandomInt(0, 2)
+    let index = getRandomInt(0, types.length - 1)
     console.log(index)
     const type = types[index];
 
@@ -68,6 +69,39 @@ function generateFunction() {
             evaluate = (x) => a * Math.pow(x, 3) + b * Math.pow(x, 2) + c * x + d;
             humanReadable = `${formatTerm(a, 'x^3', true)}${formatTerm(b, 'x^2', false)}${formatTerm(c, 'x', false)}${formatTerm(d, '', false)}`;
             hint = "Type: Cubic (e.g., x^3 - 2x^2 + x - 1)";
+            break;
+        case "sine":
+            evaluate = (x) => a * Math.sin(b * x) + c
+            humanReadable = `${formatTerm(a, "sin(" + (b !== 1 ? b + "x" : "x") + ")", true)}${formatTerm(c, "", false)}`
+            hint = "Type: Sine wave (e.g., 2sin(x) + 1)"
+            break;
+        case "cosine":
+            evaluate = (x) => a * Math.cos(b * x) + c
+            humanReadable = `${formatTerm(a, "cos(" + (b !== 1 ? b + "x" : "x") + ")", true)}${formatTerm(c, "", false)}`
+            hint = "Type: Cosine wave (e.g., 2cos(x) + 1)"
+            break;
+        // case "tangent":
+        //     evaluate = (x) => a * Math.tan(b * x) + c
+        //     humanReadable = `${formatTerm(a, "tan(" + (b !== 1 ? b + "x" : "x") + ")", true)}${formatTerm(c, "", false)}`
+        //     hint = "Type: Tangent function (e.g., 2tan(x) + 1)"
+        //     break;
+        case "exponential":
+            evaluate = (x) => a * Math.exp(b *x) + c;
+            humanReadable = `${formatTerm(a, "e^(" + (b !== 1 ? b + "x" : "x") + ")", true)}${formatTerm(c, "", false)}`
+            hint = "Type: Exponential (e.g., 2e^x + 1 or e^(2x))"
+            break;
+        case "absolute":
+            evaluate = (x) => a * Math.abs(b * x + c) + d;
+            humanReadable = `${formatTerm(a, "|", true)}${formatTerm(b, "x", false)}${formatTerm(c, "|", false)}${formatTerm(d, "", false)}`;
+            hint = "Type: Absolute value (e.g., |2x + 1| or 2|x| - 3)";
+            break;
+        case "rational":
+            evaluate = (x) => {
+                if (Math.abs(x + b) < 0.001) return NaN;
+                return a / (x + b) + c;
+            };
+            humanReadable = `${a}/(x${b <= 0 ? '+' + b : b})${formatTerm(c, "", false)}`;
+            hint = "Type: Rational (e.g., 2/(x+1) + 3 or 1/x - 2";
             break;
     }
 
@@ -131,11 +165,10 @@ function parseHumanMath(expr) {
 function toCanvasX(x) { return CENTER + x * SCALE; }
 function toCanvasY(y) { return CENTER - y * SCALE; }
 
-function drawGraph () {
+function drawGraph() {
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-    // Grid and Axes
-    ctx.strokeStyle = "#e0e0e0"
+    ctx.strokeStyle = "rgb(160, 160, 160)";
     ctx.lineWidth = 1;
 
     for (let i = X_MIN; i <= X_MAX; i++) {
@@ -149,27 +182,31 @@ function drawGraph () {
         ctx.stroke();
     }
 
-    ctx.strokeStyle = "#333"
+    ctx.strokeStyle = "#000000";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(0, CENTER); ctx.lineTo(CANVAS_SIZE, CENTER);
     ctx.moveTo(CENTER, 0); ctx.lineTo(CENTER, CANVAS_SIZE);
     ctx.stroke();
 
-    // Function
     if (!currentFunction) return;
 
-    ctx.strokeStyle = "#39b5e6"
+    ctx.strokeStyle = "#39b5e6";
     ctx.lineWidth = 3;
     ctx.beginPath();
 
     let firstPoint = true;
+    let lastY = 0;
+    
     for (let x = X_MIN; x <= X_MAX; x += 0.05) {
         const y = currentFunction.evaluate(x);
         const cx = toCanvasX(x);
         const cy = toCanvasY(y);
 
-        if (cy  < -CANVAS_SIZE || cy > CANVAS_SIZE*2) {
+        // Check if point is way off screen OR if there's a huge jump (discontinuity)
+        const hugeJump = !firstPoint && Math.abs(cy - lastY) > CANVAS_SIZE;
+        
+        if (isNaN(y) || cy < -100 || cy > CANVAS_SIZE + 100 || hugeJump) {
             firstPoint = true;
             continue;
         }
@@ -177,10 +214,11 @@ function drawGraph () {
         if (firstPoint) {
             ctx.moveTo(cx, cy);
             firstPoint = false;
-        }
-        else {
+        } else {
             ctx.lineTo(cx, cy);
         }
+        
+        lastY = cy;
     }
     ctx.stroke();
 }

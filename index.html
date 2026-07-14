@@ -6,32 +6,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Functioning!</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="shortcut icon" href="F!.png" type="image/x-icon">
 </head>
 
 <body>
     <div class="game-container">
-        <h1>
-            📈 Functioning!
-        </h1>
-        <p>
-            Guess the mathematical expression for the graph.
-            <strong>
-                One attempt only!
-            </strong>
-        </p>
-
-        <canvas id="graphCanvas" width="400" height="400"></canvas>
-
-        <div class="controls">
-            <p calss="hint" id="hintText">
-                Hint: Loading...
+        <div class="game">
+            <h1 class="header">
+                <img src="F!.png" alt="logo"> Functioning!
+            </h1>
+            <p>
+                Guess the mathematical expression for the graph.
+                <strong>
+                    One attempt only!
+                </strong>
             </p>
-            <input type="text" id="userGuess" placeholder="e.g., x^2 + 2x + 1 or sin(x)" autocomplete="off" />
-            <button id="submitBtn">Submit Guess</button>
-            <button id="newGameBtn" class="hidden">New Game</button>
+            <canvas id="graphCanvas" width="400" height="400"></canvas>
+            <div class="controls">
+                <p calss="hint" id="hintText">
+                    Hint: Loading...
+                </p>
+                <input type="text" id="userGuess" placeholder="e.g., x^2 + 2x + 1 or sin(x)" autocomplete="off" />
+                <button id="submitBtn">Submit Guess</button>
+                <button id="newGameBtn" class="hidden">New Game</button>
+            </div>
+            <p id="feedback" class="feedback"></p>
         </div>
-
-        <p id="feedback" class="feedback"></p>
+        <!-- <div class="stats">
+            <div class="player-stats">
+                <h1>Score</h1>
+                <h2>Current score: <span id="currentScore">10</span></h2>
+            </div>
+            <div class="leaderboard">
+            </div>
+        </div> -->
     </div>
     <script src="js/script.js"></script>
 </body>
