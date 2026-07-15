@@ -5,6 +5,7 @@ const CENTER = CANVAS_SIZE / 2;
 const X_MIN = -10;
 const X_MAX = 10;
 
+const dateSpan = document.getElementById('date');
 const canvas = document.getElementById("graphCanvas");
 const ctx = canvas.getContext("2d");
 const userInput = document.getElementById("userGuess");
