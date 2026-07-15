@@ -5,43 +5,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Functioning!</title>
+    <!-- <link rel="shortcut icon" href="favicon.ico" id="favicon" type="image/x-icon"> -->
     <link rel="stylesheet" href="css/style.css">
-    <link rel="shortcut icon" href="F!.png" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
 </head>
 
 <body>
-    <div class="game-container">
-        <div class="game">
-            <h1 class="header">
-                <img src="F!.png" alt="logo"> Functioning!
-            </h1>
-            <p>
-                Guess the mathematical expression for the graph.
-                <strong>
-                    One attempt only!
-                </strong>
-            </p>
-            <canvas id="graphCanvas" width="400" height="400"></canvas>
-            <div class="controls">
-                <p calss="hint" id="hintText">
-                    Hint: Loading...
-                </p>
-                <input type="text" id="userGuess" placeholder="e.g., x^2 + 2x + 1 or sin(x)" autocomplete="off" />
-                <button id="submitBtn">Submit Guess</button>
-                <button id="newGameBtn" class="hidden">New Game</button>
-            </div>
-            <p id="feedback" class="feedback"></p>
-        </div>
-        <!-- <div class="stats">
-            <div class="player-stats">
-                <h1>Score</h1>
-                <h2>Current score: <span id="currentScore">10</span></h2>
-            </div>
-            <div class="leaderboard">
-            </div>
-        </div> -->
+    <div class="top-bar">
+        <span>№ 01</span>
+        <span class="sep">—</span>
+        <span>WED 15.07.2026</span>
+        <span class="sep">—</span>
+        <span>A GAME OF CURVES</span>
+        <button id="themeToggle" class="theme-btn">Dark Mode</button>
     </div>
-    <script src="js/script.js"></script>
+
+
+    <div class="game-container">
+
+        <main class="game-container">
+            <header class="header">
+                <h1 class="title">
+                    <span class="title-main">Function</span><span class="title-accent">ing</span><span
+                        class="title-dot">.</span>
+                </h1>
+                <p class="subtitle">Guess the expression that draws the curve. One attempt only — no second chances.</p>
+            </header>
+
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-label">Score</span>
+                    <span class="stat-value" id="scoreVal">000</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Streak</span>
+                    <span class="stat-value" id="streakVal">00</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Best Score</span>
+                    <span class="stat-value" id="bestScoreVal">000</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Best Streak</span>
+                    <span class="stat-value" id="bestStreakVal">00</span>
+                </div>
+            </div>
+
+            <section class="graph-section">
+                <div class="graph-label">
+                    <span class="label-tag">FIG. 01</span>
+                    <span class="label-hint" id="hintText">Loading…</span>
+                </div>
+                <canvas id="graphCanvas" width="400" height="400"></canvas>
+            </section>
+
+            <section class="controls">
+                <label class="input-wrapper">
+                    <span class="prompt">f(x) =</span>
+                    <input type="text" id="userGuess" placeholder="type your expression…" autocomplete="off"
+                        spellcheck="false">
+                </label>
+                <div class="button-row">
+                    <button id="submitBtn">Submit →</button>
+                    <button id="newGameBtn" class="hidden">New Curve →</button>
+                </div>
+                <div class="feedback" id="feedback"></div>
+            </section>
+
+            <footer class="footer">
+                <span>Allowed: x, +, -, *, /, ^, sin, cos, tan, abs, sqrt, e, pi</span>
+            </footer>
+        </main>
+
+        <script src="js/script.js"></script>
 </body>
 
 </html>

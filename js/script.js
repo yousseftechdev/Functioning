@@ -1,6 +1,6 @@
 // Constants
 const CANVAS_SIZE = 400;
-const SCALE = 20; // Pixels per unit (-10 to 10 range on the x axis)
+const SCALE = 20; // Pixels per unit
 const CENTER = CANVAS_SIZE / 2;
 const X_MIN = -10;
 const X_MAX = 10;
@@ -12,10 +12,20 @@ const submitBtn = document.getElementById("submitBtn");
 const newGameBtn = document.getElementById("newGameBtn");
 const feedback = document.getElementById("feedback");
 const hintText = document.getElementById("hintText");
+const scoreVal = document.getElementById("scoreVal");
+const streakVal = document.getElementById("streakVal");
+const bestScoreVal = document.getElementById("bestScoreVal");
+const bestStreakVal = document.getElementById("bestStreakVal");
+const themeToggle = document.getElementById("themeToggle");
 
 // Variables
 let currentFunction = null;
 let hasGuessed = false;
+let score = 0;
+let streak = 0;
+let bestScore = parseInt(localStorage.getItem('curveGameBestScore') || '0', 10);
+let bestStreak = parseInt(localStorage.getItem('curveGameBestStreak') || '0', 10);
+let isDarkMode = localStorage.getItem('curveGameDarkMode') === 'true';
 
 // Logic and Math
 function getRandomInt(min, max) {
@@ -24,29 +34,22 @@ function getRandomInt(min, max) {
 
 function getNonZeroInt(min, max) {
     let val = getRandomInt(min, max);
-    return val === 0 ? 1 : val; // Prevent flat lines for multipliers
+    return val === 0 ? 1 : val;
 }
 
 function generateFunction() {
     const types = [
-        "linear",
-        "quadratic",
-        "cubic",
-        "sine",
-        "cosine",
-        "tangent",
-        "exponential",
-        "absolute",
-        "rational",
-        "square_root"
+        "linear", "quadratic", "cubic", "sine", "cosine",
+        "tangent", "exponential", "absolute", "rational", "square_root"
     ];
 
-    const type = types[getRandomInt(0, types.length - 1)];
+    // TODO: Change to random type when done testing
+    const type = "quadratic";
+    // const type = types[getRandomInt(0, types.length - 1)];
 
     let evaluate, humanReadable, hint;
-
     const a = getNonZeroInt(-3, 3);
-    const b = getNonZeroInt(-3, 3);
+    const b = getRandomInt(-3, 3);
     const c = getRandomInt(-3, 3);
     const d = getRandomInt(-3, 3);
 
@@ -68,40 +71,62 @@ function generateFunction() {
             humanReadable = `${formatTerm(a, 'x^3', true)}${formatTerm(b, 'x^2', false)}${formatTerm(c, 'x', false)}${formatTerm(d, '', false)}`;
             hint = "Type: Cubic (e.g., x^3 - 2x^2 + x - 1)";
             break;
+
         case "sine":
             evaluate = (x) => a * Math.sin(b * x) + c;
             humanReadable = `${formatTerm(a, "sin(" + (b !== 1 ? b + "x" : "x") + ")", true)}${formatTerm(c, "", false)}`;
             hint = "Type: Sine wave (e.g., 2sin(x) + 1)";
             break;
+
         case "cosine":
             evaluate = (x) => a * Math.cos(b * x) + c;
             humanReadable = `${formatTerm(a, "cos(" + (b !== 1 ? b + "x" : "x") + ")", true)}${formatTerm(c, "", false)}`;
             hint = "Type: Cosine wave (e.g., 2cos(x) + 1)";
             break;
+
         case "tangent":
             evaluate = (x) => {
                 const val = b * x;
-                if (Math.abs(Math.cos(val)) < 0.001) return NaN; // Prevent drawing exactly at asymptotes
+                if (Math.abs(Math.cos(val)) < 0.001) return NaN;
                 return a * Math.tan(val) + c;
             };
             humanReadable = `${formatTerm(a, "tan(" + (b !== 1 ? b + "x" : "x") + ")", true)}${formatTerm(c, "", false)}`;
             hint = "Type: Tangent function (e.g., 2tan(x) + 1)";
             break;
+
         case "exponential":
             evaluate = (x) => a * Math.exp(b * x) + c;
-            humanReadable = `${formatTerm(a, "e^(" + (b !== 1 ? b + "x" : "x") + ")", true)}${formatTerm(c, "", false)}`
-            hint = "Type: Exponential (e.g., 2e^x + 1 or e^(2x))"
+            humanReadable = `${formatTerm(a, "e^(" + (b !== 1 ? b + "x" : "x") + ")", true)}${formatTerm(c, "", false)}`;
+            hint = "Type: Exponential (e.g., 2e^x + 1 or e^(2x))";
             break;
+
         case "absolute":
             evaluate = (x) => a * Math.abs(b * x + c) + d;
-            humanReadable = `${formatTerm(a, "|", true)}${formatTerm(b, "x", false)}${formatTerm(c, "|", false)}${formatTerm(d, "", false)}`;
+
+            // Build inner expression properly
+            let inner = "";
+            if (b !== 0) inner += formatTerm(b, "x", true);
+            if (c !== 0) inner += formatTerm(c, "", inner === "");
+            if (inner === "") inner = "0";
+
+            let absPart = `|${inner}|`;
+            if (a === -1) absPart = `-${absPart}`;
+            else if (a !== 1) absPart = `${a}${absPart}`;
+
+            let dStr = "";
+            if (d > 0) dStr = ` + ${d}`;
+            else if (d < 0) dStr = ` - ${Math.abs(d)}`;
+
+            humanReadable = absPart + dStr;
             hint = "Type: Absolute value (e.g., |2x + 1| or 2|x| - 3)";
             break;
+
         case "rational":
             evaluate = (x) => {
                 if (Math.abs(x + b) < 0.001) return NaN;
                 return a / (x + b) + c;
             };
+            // Fix denominator formatting for negative b
             const denom = b === 0 ? "x" : `(x${b < 0 ? b : '+' + b})`;
             humanReadable = `${a}/${denom}${formatTerm(c, "", false)}`;
             hint = "Type: Rational (e.g., 2/(x+1) + 3 or 1/x - 2)";
@@ -113,60 +138,91 @@ function generateFunction() {
                 if (val < 0) return NaN;
                 return a * Math.sqrt(val) + d;
             };
-            const inner = c === 0 ? "x" : `(x${c < 0 ? c : '+' + c})`;
-            humanReadable = `${formatTerm(a, `sqrt(${inner})`, true)}${formatTerm(d, "", false)}`;
+            // Ensure proper parentheses for non-zero c
+            const innerSqrt = c === 0 ? "x" : `(x${c < 0 ? c : '+' + c})`;
+            humanReadable = `${formatTerm(a, `sqrt(${innerSqrt})`, true)}${formatTerm(d, "", false)}`;
             hint = "Type: Square root (e.g., 2sqrt(x) or sqrt(x-1) + 3)";
+            break;
     }
 
-    // Fallback for when all terms cancel out (rare, but possible)
     if (humanReadable === "") humanReadable = "0";
-
     return { evaluate, humanReadable, hint, type };
 }
 
-// Helper to format math beautifully (e.g., "2x^2 - 3x + 1" instead of "2*x**2 + -3*x + 1")
 function formatTerm(coeff, varPart, isFirst) {
     if (coeff === 0) return "";
     const sign = coeff > 0 ? (isFirst ? "" : " + ") : (isFirst ? "-" : " - ");
     const absCoeff = Math.abs(coeff);
-    // Hide coefficient '1' unless it's a standalone number or absolute value bar
     const coeffStr = (absCoeff === 1 && varPart !== "" && varPart !== "|") ? "" : absCoeff;
-
     return `${sign}${coeffStr}${varPart}`;
+}
+
+function pad(n, len = 3) {
+    return String(n).padStart(len, '0');
+}
+
+// ✅ Single correct updateScoreUI
+function updateScoreUI() {
+    scoreVal.textContent = pad(score);
+    streakVal.textContent = pad(streak, 2);
+    bestScoreVal.textContent = pad(bestScore);
+    bestStreakVal.textContent = pad(bestStreak, 2);
+}
+
+function flashStat(el) {
+    el.classList.add('pop');
+    setTimeout(() => el.classList.remove('pop'), 600);
+}
+
+function toggleTheme() {
+    isDarkMode = !isDarkMode;
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('curveGameDarkMode', isDarkMode);
+    if (currentFunction) drawGraph();
 }
 
 function parseHumanMath(expr) {
     let jsExpr = expr.toLowerCase().trim();
 
-    // Handle implicit multiplication (digit-letter, letter-digit) FIRST
-    // This turns "3sqrt" into "3*sqrt" and "2x" into "2*x"
+    // Handle absolute value FIRST
+    jsExpr = jsExpr.replace(/\|([^|]+)\|/g, 'Math.abs($1)');
+
+    // Add abs placeholder BEFORE implicit multiplication
+    jsExpr = jsExpr.replace(/\babs\b/gi, '__ABS__');
+
+    // Implicit multiplication
     jsExpr = jsExpr.replace(/(\d)([a-z])/gi, '$1*$2');
     jsExpr = jsExpr.replace(/([a-z])(\d)/gi, '$1*$2');
 
-    // Replace functions with safe placeholders
-    // This prevents later regex rules from breaking "Math.sin" into "Math.sin*"
+    // Function placeholders
     jsExpr = jsExpr.replace(/\bsin\b/gi, '__SIN__');
     jsExpr = jsExpr.replace(/\bcos\b/gi, '__COS__');
     jsExpr = jsExpr.replace(/\btan\b/gi, '__TAN__');
-    jsExpr = jsExpr.replace(/\babs\b/gi, '__ABS__');
     jsExpr = jsExpr.replace(/\bsqrt\b/gi, '__SQRT__');
     jsExpr = jsExpr.replace(/\blog\b/gi, '__LOG__');
     jsExpr = jsExpr.replace(/\bexp\b/gi, '__EXP__');
 
-    // Handle absolute value notation
-    jsExpr = jsExpr.replace(/\|([^|]+)\|/g, 'Math.abs($1)');
+    // Exponentiation
+    // JS forbids a unary minus directly before ** (e.g. -x**2 is a SyntaxError).
+    // So we rewrite "-base^exp" -> "-(base^exp)" whenever the minus is a sign
+    // (start of string, or right after an operator/open-paren), not subtraction.
+    const token = '(?:__[A-Z]+__\\([^()]*\\)|[a-zA-Z_$][\\w$]*|\\d+(?:\\.\\d+)?|\\([^()]*\\))';
+    const unaryBeforePow = new RegExp(
+        '(^|[-+*/(,])\\s*-\\s*(' + token + ')\\^(' + token + ')',
+        'g'
+    );
+    jsExpr = jsExpr.replace(unaryBeforePow, (_, prefix, base, exp) => `${prefix}-(${base}^${exp})`);
 
-    // Replace ^ with **
     jsExpr = jsExpr.replace(/\^/g, '**');
-    
-    // Handle remaining implicit multiplication
-    jsExpr = jsExpr.replace(/(\d)\(/g, '$1*(');         // 2( -> 2*(
-    jsExpr = jsExpr.replace(/\)(\d)/g, ')*$1');         // )2 -> )*2
-    jsExpr = jsExpr.replace(/\)\(/g, ')*(');            // )( -> )*(
-    jsExpr = jsExpr.replace(/([a-z])\(/gi, '$1*(');     // x( -> x*( (Safe now, functions are __SIN__)
-    jsExpr = jsExpr.replace(/\)([a-z])/gi, ')*$1');     // )x -> )*x
 
-    // Restore functions to Math.* equivalents
+    // Remaining implicit multiplication
+    jsExpr = jsExpr.replace(/(\d)\(/g, '$1*(');
+    jsExpr = jsExpr.replace(/\)(\d)/g, ')*$1');
+    jsExpr = jsExpr.replace(/\)\(/g, ')*(');
+    jsExpr = jsExpr.replace(/([a-z])\(/gi, '$1*(');
+    jsExpr = jsExpr.replace(/\)([a-z])/gi, ')*$1');
+
+    // Restore functions
     jsExpr = jsExpr.replace(/__SIN__/gi, 'Math.sin');
     jsExpr = jsExpr.replace(/__COS__/gi, 'Math.cos');
     jsExpr = jsExpr.replace(/__TAN__/gi, 'Math.tan');
@@ -175,28 +231,32 @@ function parseHumanMath(expr) {
     jsExpr = jsExpr.replace(/__LOG__/gi, 'Math.log');
     jsExpr = jsExpr.replace(/__EXP__/gi, 'Math.exp');
 
-    // Handle standalone 'e' as Euler's number and 'pi' as Math.PI
+    // Constants
     jsExpr = jsExpr.replace(/(?<![a-z])e(?![a-z])/gi, 'Math.E');
     jsExpr = jsExpr.replace(/\bpi\b/gi, 'Math.PI');
 
-    // STRICT SANITIZATION: Only allow safe characters
+    // Sanitization
     const safeRegex = /^(?:[0-9x\.\+\-\*\/\(\)\s]|Math\.(?:sin|cos|tan|abs|sqrt|log|exp|PI|E))+$/i;
     if (!safeRegex.test(jsExpr)) {
-        throw new Error("Invalid characters. Use only x, numbers, +, -, *, /, ^, and functions like sin, cos, abs.");
+        throw new Error("Invalid characters.");
     }
 
-    // Compile into a safe, executable function
+    console.log("Parsed:", jsExpr); // Debug log
     return new Function('x', `return ${jsExpr};`);
 }
 
-// Graphing and display
+// Graphing
 function toCanvasX(x) { return CENTER + x * SCALE; }
 function toCanvasY(y) { return CENTER - y * SCALE; }
 
 function drawGraph() {
-    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    const isDark = document.body.classList.contains('dark-mode');
+    const gridColor = isDark ? "#2a2a2a" : "#d4cfc4";
+    const axisColor = isDark ? "#f2ede4" : "#1a1a1a";
+    const curveColor = isDark ? "#5ce1e6" : "#e85d3c";
 
-    ctx.strokeStyle = "rgb(160, 160, 160)";
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
 
     for (let i = X_MIN; i <= X_MAX; i++) {
@@ -210,7 +270,7 @@ function drawGraph() {
         ctx.stroke();
     }
 
-    ctx.strokeStyle = "#000000";
+    ctx.strokeStyle = axisColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(0, CENTER); ctx.lineTo(CANVAS_SIZE, CENTER);
@@ -219,7 +279,7 @@ function drawGraph() {
 
     if (!currentFunction) return;
 
-    ctx.strokeStyle = "#39b5e6";
+    ctx.strokeStyle = curveColor;
     ctx.lineWidth = 3;
     ctx.beginPath();
 
@@ -230,8 +290,6 @@ function drawGraph() {
         const y = currentFunction.evaluate(x);
         const cx = toCanvasX(x);
         const cy = toCanvasY(y);
-
-        // Check if point is way off screen OR if there's a huge jump (discontinuity)
         const hugeJump = !firstPoint && Math.abs(cy - lastY) > CANVAS_SIZE;
 
         if (isNaN(y) || cy < -100 || cy > CANVAS_SIZE + 100 || hugeJump) {
@@ -245,18 +303,19 @@ function drawGraph() {
         } else {
             ctx.lineTo(cx, cy);
         }
-
         lastY = cy;
     }
     ctx.stroke();
 }
 
-function checkAnswer () {
+function checkAnswer() {
     if (hasGuessed) return;
 
+    feedback.classList.remove("hidden");
+    
     const userExpr = userInput.value.trim();
     if (!userExpr) {
-        feedback.textContent = "Please enter and expression.";
+        feedback.textContent = "Please enter an expression.";
         feedback.style.backgroundColor = "rgba(255, 193, 7, 0.2)";
         feedback.style.color = "#ffc107";
         return;
@@ -265,16 +324,12 @@ function checkAnswer () {
     let userEvaluate;
     try {
         userEvaluate = parseHumanMath(userExpr);
-    }
-
-    catch (e) {
-        feedback.textContent = "Invald syntax. Check your expression (e.g., use 'x', not 'X'.)";
-        feedback.style.backgroundColor = "rgba(255, 193, 7, 0.2)";
-        feedback.style.color = "#ffc107";
+    } catch (e) {
+        feedback.className = 'feedback warn';
+        feedback.textContent = "Invalid syntax — check your expression.";
         return;
     }
 
-    // Test at multiple points to verify mathematical equivalence
     const testPoints = [-9.5, -5, -2.5, -1, 0, 1, 2.5, 5, 9.5];
     let isMatch = true;
 
@@ -283,12 +338,10 @@ function checkAnswer () {
         const userY = userEvaluate(x);
 
         if (isNaN(expectedY) && isNaN(userY)) continue;
-
         if (isNaN(expectedY) || isNaN(userY)) {
             isMatch = false;
             break;
         }
-
         if (Math.abs(expectedY - userY) > 1e-4) {
             isMatch = false;
             break;
@@ -300,29 +353,43 @@ function checkAnswer () {
     submitBtn.disabled = true;
     submitBtn.classList.add("hidden");
     newGameBtn.classList.remove("hidden");
+    feedback.className = 'feedback';
 
     if (isMatch) {
-        feedback.textContent = "Correct! 🎉 Great job!";
-        feedback.style.backgroundColor = "rgba(40, 167, 69, 0.2)";
-        feedback.style.color = "#28a745";
+        streak++;
+        const points = 10 + (streak - 1) * 5;
+        score += points;
+
+        if (score > bestScore) {
+            bestScore = score;
+            localStorage.setItem('curveGameBestScore', String(bestScore));
+            flashStat(bestScoreVal);
+        }
+        if (streak > bestStreak) {
+            bestStreak = streak;
+            localStorage.setItem('curveGameBestStreak', String(bestStreak));
+            flashStat(bestStreakVal);
+        }
+
+        feedback.textContent = `Correct. +${points} points.`;
+        feedback.classList.add('success');
+        flashStat(scoreVal);
+        flashStat(streakVal);
+    } else {
+        streak = 0;
+        score = Math.max(0, score - 50); // ✅ Prevent negative score
+        feedback.textContent = `Missed it. The curve was: ${currentFunction.humanReadable}`;
+        feedback.classList.add('fail');
     }
 
-    else {
-        feedback.textContent = `Incorrect. The correct answer was: ${currentFunction.humanReadable}`;
-        feedback.style.backgroundColor = "rgba(220, 53, 69, 0.2)";
-        feedback.style.color = "#dc3545";
-    }
+    updateScoreUI();
 }
 
 function startNewGame() {
     currentFunction = generateFunction();
     hasGuessed = false;
 
-    // TODO: Remove this debugging stuff
-    console.log("Function generated:");
-    console.log("Type:", currentFunction.type);
-    console.log("Answer:", currentFunction.humanReadable);
-    console.log("Hint:", currentFunction.hint);
+    console.log("Generated:", currentFunction.type, "| Answer:", currentFunction.humanReadable);
 
     hintText.textContent = currentFunction.hint;
     userInput.value = '';
@@ -330,23 +397,24 @@ function startNewGame() {
     feedback.textContent = '';
     feedback.style.backgroundColor = 'transparent';
     feedback.style.color = 'inherit';
-
-
+    feedback.classList.add("hidden");
     submitBtn.disabled = false;
     submitBtn.classList.remove('hidden');
     newGameBtn.classList.add('hidden');
 
     drawGraph();
+    updateScoreUI();
 }
 
 // Event Listeners
-// TODO: Add missing funtion (checkAnswer)
 submitBtn.addEventListener('click', checkAnswer);
 newGameBtn.addEventListener('click', startNewGame);
-
+themeToggle.addEventListener('click', toggleTheme);
 userInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !hasGuessed) checkAnswer();
 });
 
 // Initialize
+if (isDarkMode) document.body.classList.add('dark-mode');
 startNewGame();
+updateScoreUI();
