@@ -415,6 +415,16 @@ userInput.addEventListener('keypress', (e) => {
 });
 
 // Initialize
+const now = new Date();
+
+const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const weekday = days[now.getDay()];
+
+const dd = String(now.getDate()).padStart(2, '0');
+const mm = String(now.getMonth() + 1).padStart(2, '0');
+const yyyy = now.getFullYear();
+
+dateSpan.textContent = `${weekday} ${dd}.${mm}.${yyyy}`;
 if (isDarkMode) document.body.classList.add('dark-mode');
 startNewGame();
 updateScoreUI();
