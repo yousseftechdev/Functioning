@@ -42,3 +42,6 @@ How the whole game works explained step by step:
 
 ## Motivation
 As you can tell, I'm a pretty big math fan (DOESN'T MEAN I'M GOOD AT IT THOUGH), and I really enjoy guessing how specific functions would look when seeing them as text on a board in class, I would open desmos when I'm bored and start drawing with different functions and stuff and I'd be having so much fun. One day I was like "Hmm.. What if it was the other way around? What if I could see the function but try to get the expression it formed from?", and here we are, HackClub and Horizons was a big push for me to actually work on this idea and I'm really happy with how it turned out!
+
+## AI Usage Declaration
+In the development of Functioning!, Qwen AI was only used to fine-tune the regex logic in the `parseHumanMath()` function and some debugging when it came to `checkAnswer()`, as doing those tasks would have taken tremendous effort for a human to do by hand, and without the use of AI I don't think Functioning would be the same as it is now, I would've probably sacrificed a lot of the core functions of the parser and it would've ruined the user experience for non-programmers playing the game.
