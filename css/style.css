@@ -109,7 +109,7 @@ body {
     text-transform: uppercase;
     max-width: 320px;
     line-height: 1.7;
-}
+}   
 
 .graph-section {
     margin-bottom: calc(var(--grid) * 5);
@@ -243,14 +243,15 @@ button:disabled {
 }
 
 #submitBtn {
-    background: var(--ink);
+    background: var(--bg);
     border-color: var(--ink);
-    color: var(--bg);
+    color: var(--ink);
 }
 
 #submitBtn:hover:not(:disabled) {
     background: var(--accent);
     border-color: var(--accent);
+    color: var(--bg);
 }
 
 .feedback {
@@ -333,7 +334,7 @@ button:disabled {
 }
 
 .stat-value.pop {
-    color: var(--ink);
+    color: var(--bg);
     background: var(--accent);
 }
 

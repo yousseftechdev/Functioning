@@ -43,14 +43,12 @@ function generateFunction() {
         "linear", "quadratic", "cubic", "sine", "cosine",
         "tangent", "exponential", "absolute", "rational", "square_root"
     ];
-
-    // TODO: Change to random type when done testing
-    const type = "quadratic";
-    // const type = types[getRandomInt(0, types.length - 1)];
+    
+    const type = types[getRandomInt(0, types.length - 1)];
 
     let evaluate, humanReadable, hint;
     const a = getNonZeroInt(-3, 3);
-    const b = getRandomInt(-3, 3);
+    const b = getNonZeroInt(-3, 3);
     const c = getRandomInt(-3, 3);
     const d = getRandomInt(-3, 3);
 
@@ -184,15 +182,20 @@ function toggleTheme() {
 function parseHumanMath(expr) {
     let jsExpr = expr.toLowerCase().trim();
 
-    // Handle absolute value FIRST
-    jsExpr = jsExpr.replace(/\|([^|]+)\|/g, 'Math.abs($1)');
-
-    // Add abs placeholder BEFORE implicit multiplication
+    // Convert |...| directly into the SAME placeholder used for a typed "abs" word,
+    // so both paths behave identically through the rest of the pipeline.
+    jsExpr = jsExpr.replace(/\|([^|]+)\|/g, '__ABS__($1)');
     jsExpr = jsExpr.replace(/\babs\b/gi, '__ABS__');
 
-    // Implicit multiplication
+    // Implicit multiplication: digit/letter adjacency
     jsExpr = jsExpr.replace(/(\d)([a-z])/gi, '$1*$2');
     jsExpr = jsExpr.replace(/([a-z])(\d)/gi, '$1*$2');
+
+    // Implicit multiplication into ANY placeholder (covers 3__ABS__(...), x__SIN__(...), etc.)
+    // Underscore boundaries mean the rules above never catch these, so handle explicitly.
+    jsExpr = jsExpr.replace(/(\d)(__[A-Z]+__)/g, '$1*$2');
+    jsExpr = jsExpr.replace(/([a-z])(__[A-Z]+__)/gi, '$1*$2');
+    jsExpr = jsExpr.replace(/(\))(__[A-Z]+__)/g, '$1*$2');
 
     // Function placeholders
     jsExpr = jsExpr.replace(/\bsin\b/gi, '__SIN__');
@@ -202,27 +205,23 @@ function parseHumanMath(expr) {
     jsExpr = jsExpr.replace(/\blog\b/gi, '__LOG__');
     jsExpr = jsExpr.replace(/\bexp\b/gi, '__EXP__');
 
-    // Exponentiation
-    // JS forbids a unary minus directly before ** (e.g. -x**2 is a SyntaxError).
-    // So we rewrite "-base^exp" -> "-(base^exp)" whenever the minus is a sign
-    // (start of string, or right after an operator/open-paren), not subtraction.
+    // Exponentiation (unary-minus-before-** fix)
     const token = '(?:__[A-Z]+__\\([^()]*\\)|[a-zA-Z_$][\\w$]*|\\d+(?:\\.\\d+)?|\\([^()]*\\))';
     const unaryBeforePow = new RegExp(
         '(^|[-+*/(,])\\s*-\\s*(' + token + ')\\^(' + token + ')',
         'g'
     );
     jsExpr = jsExpr.replace(unaryBeforePow, (_, prefix, base, exp) => `${prefix}-(${base}^${exp})`);
-
     jsExpr = jsExpr.replace(/\^/g, '**');
 
-    // Remaining implicit multiplication
+    // Remaining implicit multiplication (parens, letters — NOT placeholders, already handled above)
     jsExpr = jsExpr.replace(/(\d)\(/g, '$1*(');
     jsExpr = jsExpr.replace(/\)(\d)/g, ')*$1');
     jsExpr = jsExpr.replace(/\)\(/g, ')*(');
     jsExpr = jsExpr.replace(/([a-z])\(/gi, '$1*(');
     jsExpr = jsExpr.replace(/\)([a-z])/gi, ')*$1');
 
-    // Restore functions
+    // Restore functions — LAST, so nothing downstream can re-match generated "Math.xxx" text
     jsExpr = jsExpr.replace(/__SIN__/gi, 'Math.sin');
     jsExpr = jsExpr.replace(/__COS__/gi, 'Math.cos');
     jsExpr = jsExpr.replace(/__TAN__/gi, 'Math.tan');
@@ -238,10 +237,10 @@ function parseHumanMath(expr) {
     // Sanitization
     const safeRegex = /^(?:[0-9x\.\+\-\*\/\(\)\s]|Math\.(?:sin|cos|tan|abs|sqrt|log|exp|PI|E))+$/i;
     if (!safeRegex.test(jsExpr)) {
+        console.log(jsExpr);
         throw new Error("Invalid characters.");
     }
-
-    console.log("Parsed:", jsExpr); // Debug log
+    console.log(jsExpr);
     return new Function('x', `return ${jsExpr};`);
 }
 
@@ -312,7 +311,7 @@ function checkAnswer() {
     if (hasGuessed) return;
 
     feedback.classList.remove("hidden");
-    
+
     const userExpr = userInput.value.trim();
     if (!userExpr) {
         feedback.textContent = "Please enter an expression.";
@@ -337,12 +336,15 @@ function checkAnswer() {
         const expectedY = currentFunction.evaluate(x);
         const userY = userEvaluate(x);
 
-        if (isNaN(expectedY) && isNaN(userY)) continue;
-        if (isNaN(expectedY) || isNaN(userY)) {
+        const expectedInvalid = !isFinite(expectedY); // catches NaN AND ±Infinity
+        const userInvalid = !isFinite(userY);
+
+        if (expectedInvalid && userInvalid) continue;   // both blow up at this x — fine
+        if (expectedInvalid || userInvalid) {
             isMatch = false;
             break;
         }
-        if (Math.abs(expectedY - userY) > 1e-4) {
+        if (Math.abs(expectedY - userY) > 1e-2) {
             isMatch = false;
             break;
         }
@@ -377,7 +379,7 @@ function checkAnswer() {
         flashStat(streakVal);
     } else {
         streak = 0;
-        score = Math.max(0, score - 50); // ✅ Prevent negative score
+        score = Math.max(0, score - 50);
         feedback.textContent = `Missed it. The curve was: ${currentFunction.humanReadable}`;
         feedback.classList.add('fail');
     }
@@ -401,7 +403,7 @@ function startNewGame() {
     submitBtn.disabled = false;
     submitBtn.classList.remove('hidden');
     newGameBtn.classList.add('hidden');
-
+    copyToClipboard(currentFunction.humanReadable);
     drawGraph();
     updateScoreUI();
 }
@@ -412,6 +414,7 @@ newGameBtn.addEventListener('click', startNewGame);
 themeToggle.addEventListener('click', toggleTheme);
 userInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !hasGuessed) checkAnswer();
+    // if (e.key === 'Enter' && hasGuessed) startNewGame();
 });
 
 // Initialize
