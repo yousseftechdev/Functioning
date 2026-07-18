@@ -305,6 +305,7 @@ button:disabled {
     border: 1px solid var(--ink);
     background: var(--bg);
     flex-wrap: wrap;
+    transition: all 0.3s;
 }
 
 .stat {

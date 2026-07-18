@@ -391,8 +391,6 @@ function startNewGame() {
     currentFunction = generateFunction();
     hasGuessed = false;
 
-    console.log("Generated:", currentFunction.type, "| Answer:", currentFunction.humanReadable);
-
     hintText.textContent = currentFunction.hint;
     userInput.value = '';
     userInput.disabled = false;
