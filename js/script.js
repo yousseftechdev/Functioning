@@ -403,7 +403,6 @@ function startNewGame() {
     submitBtn.disabled = false;
     submitBtn.classList.remove('hidden');
     newGameBtn.classList.add('hidden');
-    copyToClipboard(currentFunction.humanReadable);
     drawGraph();
     updateScoreUI();
 }
