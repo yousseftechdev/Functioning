@@ -7,7 +7,7 @@ Functioning! is a game about MATH, everybody's favourite school subject, am I ri
 
 <img src="img/banner.gif" alt="Banner">
 
-In Functioning! you have to guess the mathematical expression/formula that when graphed with respect to X on a cartesian plane, produces the curve/line that will be shown to you.
+In Functioning! you have to guess the mathematical expression/formula that when graphed with respect to X on a cartesian plane, produces the curve/line that will be shown to you, play [here](https://functioning.vercel.app)!.
 
 Each round you will be shown a randomly generated graph/curve that falls under a specific category of functions (i.e., linear, quadratic, cubic, etc...), the coefficients are randomized which makes every round unique even if the functions are of the same type.
 
